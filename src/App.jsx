@@ -5,8 +5,11 @@ import { NavpointsProvider } from "./context/NavpointsContext";
 import { SidebarProvider } from "./context/SidebarContext";
 import { ModalProvider } from "./context/ModalContext";
 import { KeyboardProvider } from "./context/KeyboardContext";
+import { TripProvider } from "./context/TripContext";
+import { RaceProvider } from "./context/RaceContext";
 import TouchKeyboard from "./components/TouchKeyboard";
 import SplashScreen from "./components/SplashScreen";
+import { FleetProvider } from "./context/FleetContext";
 
 
 import AppLayout from "./components/AppLayout";
@@ -51,45 +54,51 @@ function App() {
   return showSplash ? (
     <SplashScreen onDone={() => setShowSplash(false)} />
   ) : (
-    <KeyboardProvider>
-      <DisplaySettingsProvider>
-        <NavpointsProvider>
-          <ModalProvider>
-            <SidebarProvider>
-              {isMicro ? (
-                <Router basename="/microdisplay">
-                  <Microdisplay
-                    nightMode={nightMode}
-                    setNightMode={setNightMode}
-                    brightness={brightness}
-                    setBrightness={setBrightness}
-                    signalkData={signalkData}
-                  />
-                </Router>
-              ) : (
-                <Router>
-                  <AppLayout
-                    nightMode={nightMode}
-                    setNightMode={setNightMode}
-                    brightness={brightness}
-                    setBrightness={setBrightness}
-                    signalkData={signalkData}
-                  />
-                </Router>
-              )}
+    <FleetProvider> 
+    <RaceProvider>
+      <TripProvider>
+        <KeyboardProvider>
+          <DisplaySettingsProvider>
+            <NavpointsProvider>
+              <ModalProvider>
+                <SidebarProvider>
+                  {isMicro ? (
+                    <Router basename="/microdisplay">
+                      <Microdisplay
+                        nightMode={nightMode}
+                        setNightMode={setNightMode}
+                        brightness={brightness}
+                        setBrightness={setBrightness}
+                        signalkData={signalkData}
+                      />
+                    </Router>
+                  ) : (
+                    <Router>
+                      <AppLayout
+                        nightMode={nightMode}
+                        setNightMode={setNightMode}
+                        brightness={brightness}
+                        setBrightness={setBrightness}
+                        signalkData={signalkData}
+                      />
+                    </Router>
+                  )}
   
-              {/* Windy widget preloaders */}
-              <div className="fixed top-0 left-0 w-1 h-1 opacity-0 pointer-events-none overflow-hidden z-0">
-                <iframe src={radarUrl} frameBorder="0" title="Radar Preload" />
-                <iframe src={liveWindUrl} frameBorder="0" title="Live Wind Preload" />
-                <iframe src={forecastUrl} frameBorder="0" title="Forecast Preload" />
-              </div>
-            </SidebarProvider>
-          </ModalProvider>
-        </NavpointsProvider>
-      </DisplaySettingsProvider>
-      <TouchKeyboard />
-    </KeyboardProvider>
+                  {/* Windy widget preloaders */}
+                  <div className="fixed top-0 left-0 w-1 h-1 opacity-0 pointer-events-none overflow-hidden z-0">
+                    <iframe src={radarUrl} frameBorder="0" title="Radar Preload" />
+                    <iframe src={liveWindUrl} frameBorder="0" title="Live Wind Preload" />
+                    <iframe src={forecastUrl} frameBorder="0" title="Forecast Preload" />
+                  </div>
+                </SidebarProvider>
+              </ModalProvider>
+            </NavpointsProvider>
+          </DisplaySettingsProvider>
+          <TouchKeyboard />
+        </KeyboardProvider>
+      </TripProvider>
+    </RaceProvider>
+    </FleetProvider>
   );
   
 }

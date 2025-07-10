@@ -10,16 +10,9 @@ export default function Microdash({ signalkData }) {
   const CHANNEL_NAME = "saildash-data";
 
   useEffect(() => {
-    listenForValue("bearingToDestination"); // just updates liveData silently
+    listenForValue("bearingToDestination");
   }, []);
   
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setData(liveData.get());
-    }, 200);
-    return () => clearInterval(interval);
-  }, []);
-
   useEffect(() => {
     const interval = setInterval(() => {
       setData(liveData.get());
@@ -43,8 +36,6 @@ export default function Microdash({ signalkData }) {
     return () => ws.close();
   }, []);
 
- 
-
   const renderInstrument = () => {
     switch (activeInstrument) {
       case "bme":
@@ -59,15 +50,11 @@ export default function Microdash({ signalkData }) {
       case "compass":
         return (
           <div className="flex flex-col items-center justify-center h-full text-white">
-            <div className="text-[22rem] font-extrabold text-white leading-none">
-            {liveData.getCompassHeading() != null
-  ? `${Math.round(liveData.getCompassHeading())}°`
-  : "—"}
+            <div className="text-[22rem] font-extrabold text-white leading-none max-w-full overflow-hidden text-center">
+              {liveData.getCompassHeading() != null ? `${Math.round(liveData.getCompassHeading())}°` : "—"}
             </div>
           </div>
         );
-
-  
 
       case "sog":
         return (
@@ -135,9 +122,7 @@ export default function Microdash({ signalkData }) {
         return (
           <div className="flex flex-col items-center justify-center h-full text-white">
             <div className="text-[22rem] font-extrabold text-white leading-none">
-            {liveData.getCompassHeading() != null
-  ? `${Math.round(liveData.getCompassHeading())}°`
-  : "—"}
+              {liveData.getCompassHeading() != null ? `${Math.round(liveData.getCompassHeading())}°` : "—"}
             </div>
             <div className="text-[14rem] font-extrabold leading-none">
               {data?.bearingToDestination != null
@@ -161,68 +146,50 @@ export default function Microdash({ signalkData }) {
 
   return (
     <div className="flex flex-col h-full w-full px-2 py-2">
-      {/* Center Display */}
       <div className="flex-1 bg-zinc-900 text-white rounded-2xl shadow p-6 flex items-center justify-center">
         {renderInstrument()}
       </div>
 
-      {/* Bottom Button Row */}
       <div className="grid grid-cols-4 gap-2 mt-4">
         <button
           onClick={() => setActiveInstrument("bme")}
-          className={`${buttonClass} ${
-            activeInstrument === "bme" ? "btn-active" : ""
-          } flex flex-col items-center justify-center text-white`}
+          className={`${buttonClass} ${activeInstrument === "bme" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
         >
           <div className="text-4xl font-extrabold">
-            {data?.temperature != null
-              ? `${Math.round(data.temperature)}°`
-              : "—"}
+            {data?.temperature != null ? `${Math.round(data.temperature)}°` : "—"}
           </div>
           <div className="text-sm">Env</div>
         </button>
 
         <button
           onClick={() => setActiveInstrument("compass")}
-          className={`${buttonClass} ${
-            activeInstrument === "compass" ? "btn-active" : ""
-          } flex flex-col items-center justify-center text-white`}
+          className={`${buttonClass} ${activeInstrument === "compass" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
         >
           <div className="text-3xl font-extrabold">
-          {liveData.getCompassHeading() != null
-  ? `${Math.round(liveData.getCompassHeading())}°`
-  : "—"}
+            {liveData.getCompassHeading() != null ? `${Math.round(liveData.getCompassHeading())}°` : "—"}
           </div>
-          <div className="text-sm">Heading</div>
+          <div className="text-sm">Compass</div>
         </button>
 
         <button
-onClick={() => {
-    setActiveInstrument("bearing");
-    setData(liveData.get()); // <-- force a refresh from liveData
-  }}
-          className={`${buttonClass} ${
-            activeInstrument === "bearing" ? "btn-active" : ""
-          } flex flex-col items-center justify-center text-white`}
+          onClick={() => {
+            setActiveInstrument("bearing");
+            setData(liveData.get());
+          }}
+          className={`${buttonClass} ${activeInstrument === "bearing" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
         >
           <div className="text-3xl font-extrabold">
-            {data?.bearingToDestination != null
-              ? data.bearingToDestination.toFixed(0) + "°"
-              : "—"}
+            {data?.bearingToDestination != null ? `${data.bearingToDestination.toFixed(0)}°` : "—"}
           </div>
           <div className="text-sm">Bearing</div>
         </button>
 
         <button
           onClick={() => setActiveInstrument("sog")}
-          className={`${buttonClass} ${
-            activeInstrument === "sog" ? "btn-active" : ""
-          } flex flex-col items-center justify-center text-white`}
+          className={`${buttonClass} ${activeInstrument === "sog" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
         >
           <div className="text-3xl font-extrabold">
-            {data?.speed != null
-              ? `${data.speed.toFixed(1)}`
-              : "—"}
+            {data?.speed != null ? `${data.speed.toFixed(1)}` : "—"}
           </div>
           <div className="text-sm">SOG</div>
         </button>

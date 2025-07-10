@@ -1,5 +1,7 @@
 // Haversine formula to calculate distance in nautical miles
 export function calculateDistance(lat1, lon1, lat2, lon2) {
+    console.log('calculateDistance called with:', { lat1, lon1, lat2, lon2 });
+    
     const R = 6371; // Radius of Earth in kilometers
     const toRad = (deg) => (deg * Math.PI) / 180;
   
@@ -15,6 +17,7 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
     const km = R * c;
   
     const nauticalMiles = km * 0.539957;
+    console.log('calculateDistance result:', nauticalMiles);
     return nauticalMiles;
   }
   

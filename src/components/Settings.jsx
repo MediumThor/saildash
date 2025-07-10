@@ -14,9 +14,12 @@ export default function Settings({ nightMode, setNightMode, brightness, setBrigh
   const clickSoundRef = useRef(null);
   const navigate = useNavigate();
   const [boatName, setBoatName] = useState(() => localStorage.getItem("boatName") || "");
-const [showBoatNameModal, setShowBoatNameModal] = useState(false);
-const [boatNameInput, setBoatNameInput] = useState(boatName);
-const [keyboardResetSignal, setKeyboardResetSignal] = useState(0);
+  const [showBoatNameModal, setShowBoatNameModal] = useState(false);
+  const [boatNameInput, setBoatNameInput] = useState(boatName);
+  const [keyboardResetSignal, setKeyboardResetSignal] = useState(0);
+  const [rawData, setRawData] = useState(null);
+  const [wsStatus, setWsStatus] = useState("Connecting...");
+  const [showDebug, setShowDebug] = useState(false);
 
 
 const {
@@ -57,6 +60,32 @@ const {
       } catch {}
     };
 
+    return () => ws.close();
+  }, []);
+
+  // Debug WebSocket connection
+  useEffect(() => {
+    const ws = new WebSocket(`ws://${window.location.hostname}:8081`);
+    ws.onmessage = (event) => {
+      try {
+        const incoming = JSON.parse(event.data);
+        setRawData(incoming);
+      } catch (err) {
+        console.error("WebSocket error:", err);
+      }
+    };
+    ws.onopen = () => {
+      console.log("📡 Connected to serial WebSocket");
+      setWsStatus("Connected");
+    };
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
+      setWsStatus("Error");
+    };
+    ws.onclose = () => {
+      console.log("WebSocket closed");
+      setWsStatus("Disconnected");
+    };
     return () => ws.close();
   }, []);
 
@@ -389,6 +418,27 @@ const {
 
 </div>
 
+{/* Debug Section */}
+<div className="bg-zinc-800 rounded-lg p-4 space-y-4">
+  <h3 className="text-2xl font-semibold">Debug</h3>
+  
+  <button
+    onClick={() => setShowDebug(!showDebug)}
+    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg w-full"
+  >
+    {showDebug ? "Hide" : "Show"} Serial Data Feed
+  </button>
+
+  {showDebug && (
+    <div className="space-y-4">
+      <div className="text-lg">WebSocket Status: <span className={`font-bold ${wsStatus === "Connected" ? "text-green-400" : wsStatus === "Error" ? "text-red-400" : "text-yellow-400"}`}>{wsStatus}</span></div>
+      <div className="text-lg">Last Update: {rawData ? new Date().toLocaleTimeString() : "No data"}</div>
+      <pre className="text-sm bg-zinc-900 p-4 rounded-lg overflow-auto max-h-[400px] text-green-300">
+        {rawData ? JSON.stringify(rawData, null, 2) : "Waiting for data..."}
+      </pre>
+    </div>
+  )}
+</div>
 
   
 

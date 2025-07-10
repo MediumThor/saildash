@@ -1,10 +1,40 @@
 import React, { useEffect, useState } from "react";
 import { useSidebar } from "../context/SidebarContext";
+import liveData from "../utils/liveData";
+
 
 export default function HeaderMicro({ nightMode }) {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const [isWifiConnected, setIsWifiConnected] = useState(false);
   const [boatName, setBoatName] = useState(() => localStorage.getItem("boatName") || "Saildash");
+  const [gpsTime, setGpsTime] = useState(null);
+
+
+useEffect(() => {
+  let lastDate = null;
+
+  const interval = setInterval(() => {
+    const raw = liveData.getGPSTime();
+    let date = null;
+
+    if (raw) {
+      const parsed = new Date(raw);
+      if (!isNaN(parsed)) {
+        lastDate = parsed;
+      }
+    }
+
+    if (lastDate) {
+      // Tick forward one second if no update this cycle
+      lastDate = new Date(lastDate.getTime() + 1000);
+      setGpsTime(lastDate.toLocaleTimeString());
+    }
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, []);
+
+  
 
   useEffect(() => {
     const updateFromStorage = () => {
@@ -68,7 +98,9 @@ export default function HeaderMicro({ nightMode }) {
   />
 )}
         <div className={`${nightMode ? "text-amber-300" : "text-zinc-300"}`}>
-          {new Date().toLocaleTimeString()}
+        {gpsTime || <span className="text-zinc-400">—:—:—</span>}
+
+
         </div>
       </div>
     </header>

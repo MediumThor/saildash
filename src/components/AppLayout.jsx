@@ -10,11 +10,9 @@ import GPS from "./GPS";
 import Weather from "./Weather";
 import Wifi from "./Wifi";
 import Music from "./Music";
-import Spotify from "./Spotify/Spotify";
-import SpotifyPlayer from "./Spotify/SpotifyPlayer";
-import SpotifyCallback from "./Spotify/SpotifyCallback";
 import Microdisplay from "./Microdash";
 import Race from "./Race"; // ✅ NEW
+import AIChat from "./AIChat"; // ✅ NEW
 
 import { useSidebar } from "../context/SidebarContext";
 import { useModal } from "../context/ModalContext";
@@ -59,11 +57,9 @@ export default function AppLayout({ nightMode, signalkData, setNightMode, bright
             <Route path="/weather" element={<Weather />} />
             <Route path="/wifi" element={<Wifi />} />
             <Route path="/music" element={<Music />} />
-            <Route path="/music/spotify" element={<Spotify />} />
-            <Route path="/callback" element={<SpotifyCallback />} />
-            <Route path="/music/spotify/player" element={<SpotifyPlayer />} />
             <Route path="/microdisplay" element={<Microdisplay />} />
             <Route path="/race" element={<Race />} /> {/* ✅ NEW ROUTE */}
+            <Route path="/ai-chat" element={<AIChat nightMode={nightMode} />} /> {/* ✅ NEW ROUTE */}
           </Routes>
         </main>
       </div>

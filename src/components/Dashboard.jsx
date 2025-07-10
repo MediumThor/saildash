@@ -38,10 +38,12 @@ export default function Dashboard({ signalkData }) {
     switch (activeInstrument) {
       case "bme":
         return (
-          <div className="space-y-14 text-center text-8xl font-bold">
+          <div className="space-y-14 text-center text-6xl font-bold">
             <div>Temp: {data?.temperature ? `${data.temperature}°F` : "—"}</div>
             <div>Humidity: {data?.humidity ? `${data.humidity}%` : "—"}</div>
             <div>Pressure: {data?.pressure ? `${data.pressure} hPa` : "—"}</div>
+            <div>Water Temp 1: {data?.waterTemp1 ? `${data.waterTemp1}°F` : "—"}</div>
+            <div>Water Temp 2: {data?.waterTemp2 ? `${data.waterTemp2}°F` : "—"}</div>
           </div>
         );
 
@@ -210,7 +212,7 @@ export default function Dashboard({ signalkData }) {
 </button>
 
 
-<button
+  <button
   onClick={() => setActiveInstrument("trip")}
   className={`${buttonClass} ${activeInstrument === "trip" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
 >
@@ -222,6 +224,7 @@ export default function Dashboard({ signalkData }) {
   </div>
   <div className="text-xlg mt-1">Trip</div>
 </button>
+
 </div>
 
 
@@ -250,7 +253,8 @@ export default function Dashboard({ signalkData }) {
           className={`${buttonClass} ${activeInstrument === "sog" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
         >
           <div className="text-7xl font-extrabold leading-tight">
-            {data?.speedKnots != null ? `${data.speedKnots.toFixed(1)}` : "—"}
+                                {data?.speed != null ? data.speed.toFixed(1) : "—"}
+
           </div>
           <div className="text-xlg mt-1">SOG</div>
         </button>

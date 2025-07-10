@@ -7,7 +7,6 @@ import { useDisplaySettings } from "../context/DisplaySettingsContext";
 import { useNavpoints } from "../context/NavpointsContext";
 import { useModal } from "../context/ModalContext";
 import { useRace } from "../context/RaceContext";
-import { useSidebar } from "../context/SidebarContext";
 import AddNavpointModal from "../components/AddNavpointModal";
 import SetDestinationModal from "../components/SetDestinationModal";
 import { calculateBearing } from "../utils/calculateBearing";
@@ -18,9 +17,6 @@ import StartLineSelector from "./StartLineSelector";
 import CourseSelector from "./CourseSelector";
 import clsx from "clsx";
 import { syncValue } from "../utils/syncStorage";
-import { useTrip } from "../context/TripContext";
-import { useFleet } from "../context/FleetContext";
-
 
 // Click handler for adding marker
 function ClickPopup({ setClickLatLng, openModal }) {
@@ -28,9 +24,13 @@ function ClickPopup({ setClickLatLng, openModal }) {
     click(e) {
       const clickedLatLng = e.latlng;
       setClickLatLng(clickedLatLng); // Set the coordinates for the clicked location
-      openModal("addNavpoint", clickedLatLng);
+
+      // Launch the AddNavpointModal with coordinates passed as props
+      openModal("addNavpoint", clickedLatLng); // Pass the clicked LatLng to modal
     },
+    
   });
+
   return null;
 }
 
@@ -38,6 +38,7 @@ export default function Charts({ layline, setLayline }) {
   const [geoData, setGeoData] = useState(null);
   const [longPressLatLng, setLongPressLatLng] = useState(null);
   const [clickLatLng, setClickLatLng] = useState(null);
+  const [showRaceMode, setShowRaceMode] = useState(false);
   const [showStartLineModal, setShowStartLineModal] = useState(false);
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -46,27 +47,23 @@ export default function Charts({ layline, setLayline }) {
   const { autoAdvanceDistance } = useDisplaySettings();
   const { navpoints, destinations, setDestinations, addNavpoint } = useNavpoints();
   const { openModal, closeModal, modalType, modalProps } = useModal();
-  const { isSidebarOpen } = useSidebar();
-  const {
-    startTime,
-    countdownActive,
-    raceStarted,
-    elapsedTime,
-    countdownDisplay,
-    course,
-    currentMarkIndex,
-    startLine,
-    distanceToStart,
-    timeToStart,
-    distanceToMark,
-    timeToMark,
+  const { 
+    startTime, 
+    countdownActive, 
+    raceStarted, 
+    elapsedTime, 
+    course, 
+    currentMarkIndex, 
+    startLine, 
+    distanceToStart, 
+    timeToStart, 
+    distanceToMark, 
+    timeToMark, 
     bearingToMark,
     savedRaces,
-    showRaceMode,
     setStartTime,
     setCourse,
     setStartLine,
-    setShowRaceMode,
     saveCurrentRace,
     deleteSavedRace,
     resetRace
@@ -75,80 +72,84 @@ export default function Charts({ layline, setLayline }) {
   const liveLat = liveData.get().lat;
   const liveLon = liveData.get().lon;
   const isValidCoord = (v) => typeof v === "number" && !isNaN(v);
+  
   const lat = isValidCoord(liveLat) ? liveLat : fallbackLatLon[0];
   const lon = isValidCoord(liveLon) ? liveLon : fallbackLatLon[1];
   const center = [lat, lon];
   const currentDestination = destinations.find((d) => isValidCoord(d.lat) && isValidCoord(d.lon));
-  const distanceToDestination = currentDestination && isValidCoord(lat) && isValidCoord(lon)
-    ? L.latLng(lat, lon).distanceTo(L.latLng(currentDestination.lat, currentDestination.lon)) / 1852
-    : null;
+
+  const distanceToDestination = currentDestination &&
+  isValidCoord(lat) &&
+  isValidCoord(lon)
+  ? L.latLng(lat, lon).distanceTo(
+      L.latLng(currentDestination.lat, currentDestination.lon)
+    ) / 1852
+  : null;
+
+  
   const { mapSource } = useDisplaySettings();
   const [etaNextMin, setEtaNextMin] = useState(null);
-  const [etaNextSec, setEtaNextSec] = useState(null);
-  const [etaFullMin, setEtaFullMin] = useState(null);
-  const [etaFullSec, setEtaFullSec] = useState(null);
-  const speedRef = useRef();
-  const headingRef = useRef();
-  const [isSpeedPanelExpanded, setIsSpeedPanelExpanded] = useState(false);
-  const [isHeadingPanelExpanded, setIsHeadingPanelExpanded] = useState(false);
-  const [speedFocusKey, setSpeedFocusKey] = useState("speed");
-  const [headingFocusKey, setHeadingFocusKey] = useState("heading");
-  const [isWindPanelExpanded, setIsWindPanelExpanded] = useState(false);
-  const [windFocusKey, setWindFocusKey] = useState("true");
-  const windRef = useRef();
-  const compass = liveData.getCompassHeading();
-  const {
-    showBathyShallow,
-    showBathyDeep,
-    showAutoAdvanceRadius,
-    showWindPanel,
-    showGpsMarker,
-    showSoundings,
-    showNavpoints,
-  } = useDisplaySettings();
+const [etaNextSec, setEtaNextSec] = useState(null);
+const [etaFullMin, setEtaFullMin] = useState(null);
+const [etaFullSec, setEtaFullSec] = useState(null);
+
+const speedRef = useRef();
+const headingRef = useRef();
+
+const [isSpeedPanelExpanded, setIsSpeedPanelExpanded] = useState(false);
+const [isHeadingPanelExpanded, setIsHeadingPanelExpanded] = useState(false);
+
+const [speedFocusKey, setSpeedFocusKey] = useState("speed");
+const [headingFocusKey, setHeadingFocusKey] = useState("heading");
+
+const [isWindPanelExpanded, setIsWindPanelExpanded] = useState(false);
+const [windFocusKey, setWindFocusKey] = useState("true");
+const windRef = useRef();
+const compass = liveData.getCompassHeading();
+
+  
+const {
+  showBathyShallow,
+  showBathyDeep,
+  showAutoAdvanceRadius,  // ✅ Add this
+  showWindPanel,
+  showGpsMarker,
+  showSoundings,
+  showNavpoints,
+} = useDisplaySettings();
+
   const tileBase =
-    window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-      ? "http://localhost:8085"
-      : `http://${window.location.hostname}:8085`;
-  const { isTracking } = useTrip();
-  const [showTracker, setShowTracker] = useState(false);
-  const { fleet, getVesselColor } = useFleet();
-  console.log("Fleet array length:", fleet.length);
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:8085"
+    : `http://${window.location.hostname}:8085`;
 
-
-        {/* FLEET ICON SETTINGS */}
-
-  const fleetIcon = (color) =>
-    L.divIcon({
-      className: "fleet-marker",
-      html: `
-        <div style="
-          width: 26px;
-          height: 26px;
-          background: ${color};
-          border: 2px solid white;
-          border-radius: 50%;
-          box-shadow: 0 0 6px rgba(0,0,0,0.5);
-          animation: pulse 1s infinite;
-        "></div>
-        <style>
-          @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-          }
-        </style>
-      `,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
-    });
-
+  const [countdownDisplay, setCountdownDisplay] = useState('--');
 
   useEffect(() => {
-    fetch("/data/soundings.geojson")
-      .then(res => res.json())
-      .then(data => setGeoData(data));
-  }, []);
+    const getCountdown = () => {
+      if (!countdownActive || !startTime) return '--';
+      const gpsTime = liveData.getGPSTime();
+      if (!gpsTime) return 'No GPS Time';
+      const [startHour, startMinute] = startTime.split(":").map(Number);
+      const [gpsHour, gpsMinute] = gpsTime.split(":").map(Number);
+      const startMinutes = startHour * 60 + startMinute;
+      const gpsMinutes = gpsHour * 60 + gpsMinute;
+      const countdownMinutes = startMinutes - gpsMinutes;
+      if (countdownMinutes <= 0) return 'RACE STARTED!';
+      const hours = Math.floor(countdownMinutes / 60);
+      const minutes = countdownMinutes % 60;
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      } else {
+        return `${minutes}m`;
+      }
+    };
+    setCountdownDisplay(getCountdown());
+    const interval = setInterval(() => {
+      setCountdownDisplay(getCountdown());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [countdownActive, startTime]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -159,6 +160,7 @@ export default function Charts({ layline, setLayline }) {
           const totalSecNext = Math.round((distNM / speed) * 3600);
           setEtaNextMin(formatEta(totalSecNext));
         }
+  
         if (destinations.length > 0) {
           const distNM = calculateTotalTripDistance(lat, lon, destinations);
           const totalSecFull = Math.round((distNM / speed) * 3600);
@@ -168,23 +170,34 @@ export default function Charts({ layline, setLayline }) {
         setEtaNextMin(null);
         setEtaFullMin(null);
       }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [lat, lon, currentDestination, destinations]);
+    }, [lat, lon, currentDestination, destinations]);
+  
+
+
+
 
   const tempMarkerIcon = L.icon({
-    iconUrl: "icons/location-pin.png",
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
+    iconUrl: "icons/location-pin.png", // Replace with your boat icon URL
+    iconSize: [32, 32], // Adjust the size to fit the image
+    iconAnchor: [16, 32], // Anchor point of the icon (typically bottom center)
+    popupAnchor: [0, -32], // Position the popup above the marker
   });
 
   const navpointIcon = L.icon({
-    iconUrl: "icons/location-pin.png",
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
+    iconUrl: "icons/location-pin.png", // Replace with your boat icon URL
+    iconSize: [32, 32], // Adjust the size to fit the image
+    iconAnchor: [16, 32], // Anchor point of the icon (typically bottom center)
+    popupAnchor: [0, -32], // Position the popup above the marker
   });
+
+
+  
+
+  useEffect(() => {
+    fetch("/data/soundings.geojson")
+      .then(res => res.json())
+      .then(data => setGeoData(data));
+  }, []);
 
   useEffect(() => {
     const ws = new WebSocket(`ws://${window.location.hostname}:8081`);
@@ -352,16 +365,12 @@ export default function Charts({ layline, setLayline }) {
         maxZoom={20}
         scrollWheelZoom
         touchZoom
-        zoomControl={false}
+        zoomControl={false}  // ← disables built-in zoom buttons
         whenCreated={(mapInstance) => {
           mapRef.current = mapInstance;
         }}
         style={{ height: "100%", width: "100%" }}
         className="z-0"
-        keepBuffer={4}
-        updateWhenZooming={false}
-        updateWhenIdle={true}
-        preferCanvas={true}
       >
 
 
@@ -372,9 +381,6 @@ export default function Charts({ layline, setLayline }) {
     attribution="NOAA Bathymetry Shallow"
     maxZoom={12}
     zIndex={500}
-    keepBuffer={4}
-    updateWhenZooming={false}
-    updateWhenIdle={true}
   />
 )}
 
@@ -384,9 +390,6 @@ export default function Charts({ layline, setLayline }) {
     attribution="NOAA Bathymetry Deep"
     maxZoom={12}
     zIndex={700}  // ensures it's drawn over shallow
-    keepBuffer={4}
-    updateWhenZooming={false}
-    updateWhenIdle={true}
   />
 )}
 
@@ -395,11 +398,6 @@ export default function Charts({ layline, setLayline }) {
   attribution="NOAA ENC styled with QGIS"
   url={`${tileBase}/tiles/{z}/{x}/{y}.png`}
   maxZoom={18}
-  keepBuffer={4}
-  updateWhenZooming={false}
-  updateWhenIdle={true}
-  tileSize={256}
-  zoomOffset={0}
 />
 
 {mapSource === "esri" && navigator.onLine && (
@@ -408,9 +406,6 @@ export default function Charts({ layline, setLayline }) {
     attribution="Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics"
     maxZoom={20}
     zIndex={1000} // draw on top
-    keepBuffer={4}
-    updateWhenZooming={false}
-    updateWhenIdle={true}
   />
 )}
 
@@ -441,23 +436,6 @@ export default function Charts({ layline, setLayline }) {
             </Popup>
           </Marker>
         )}
-
-{fleet.map((vessel, index) => (
-  vessel.latitude && vessel.longitude && (
-     <Marker
-    key={`fleet-${index}`}
-    position={[vessel.latitude, vessel.longitude]}
-    icon={fleetIcon(getVesselColor(vessel.id))}
-  >
-    <Popup>
-      <strong>{vessel.name}</strong><br />
-      Lat: {vessel.latitude.toFixed(5)}<br />
-      Lon: {vessel.longitude.toFixed(5)}<br />
-      Battery: {vessel.battery}%
-    </Popup>
-  </Marker>
-  )
-))}
 
 
 
@@ -683,45 +661,31 @@ export default function Charts({ layline, setLayline }) {
 
       </MapContainer>
 
-      {/* Bottom buttons: Tracker, Race Mode, and others */}
-      <div className="absolute bottom-4 right-4 flex flex-col items-end gap-4 z-[1000]">
-        {/* Tracker Button */}
+      {/* Bottom buttons */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-4 z-[1000]">
         <button
-          className="w-56 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full"
-          onClick={() => setShowTracker(true)}
-        >
-          Tracker
-        </button>
-        {/* Race Mode Button */}
-        <button
-          className="w-56 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full"
-          onClick={() => setShowRaceMode(!showRaceMode)}
-        >
-          {showRaceMode ? "Exit Race Mode" : "Race Mode"}
-        </button>
-        {/* Add Navpoint Button */}
-        <button
-          className="w-56 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-full"
+          className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-full"
           onClick={() => openModal("addNavpoint")}
         >
           ➕ Add Navpoint
         </button>
-        {/* Set Destination Button */}
+
         {navpoints.length > 0 && (
           <button
-            className="w-56 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-full"
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-full"
             onClick={() => openModal("setDestination")}
           >
             Set Destination
           </button>
         )}
-        {/* Show Rhumb Line Button */}
-        <button
-          className="w-56 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full"
-          onClick={() => openModal("layline")}
-        >
-          ➤ Show Rhumb Line
-        </button>
+
+<button
+  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full"
+  onClick={() => openModal("layline")}
+>
+  ➤ Show Rhumb Line
+</button>
+
       </div>
 
      {/* Speed Display - Upper Right Expandable */}
@@ -902,29 +866,8 @@ export default function Charts({ layline, setLayline }) {
 )}
 
 
-      {/* Trip Tracker Floating Box */}
-      {showTracker && (
-        <div
-          style={{
-            position: 'fixed',
-            right: '1rem',
-            bottom: '28rem',
-            zIndex: 1000
-          }}
-          className="bg-zinc-900 bg-opacity-90 text-white rounded-2xl shadow-xl p-4 min-w-80 max-w-md"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold mb-0">Trip Tracker</h3>
-            <button
-              onClick={() => setShowTracker(false)}
-              className="text-zinc-400 hover:text-white text-xl"
-            >
-              ×
-            </button>
-          </div>
-          <TripTracker />
-        </div>
-      )}
+      {/* Trip Tracker - UI for managing tracking */}
+      <TripTracker />
 
       {/* Modals */}
       {modalType === "addNavpoint" && (
@@ -932,20 +875,44 @@ export default function Charts({ layline, setLayline }) {
       )}
       {modalType === "setDestination" && <SetDestinationModal closeModal={closeModal} />}
 
+      {/* Race Mode Toggle */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000]">
+        <button
+          onClick={() => setShowRaceMode(!showRaceMode)}
+          className={clsx(
+            "px-4 py-2 rounded-lg font-bold text-white transition-all",
+            showRaceMode ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
+          )}
+        >
+          {showRaceMode ? "Exit Race Mode" : "Race Mode"}
+        </button>
+      </div>
+
       {/* Race Mode Overlay */}
       {showRaceMode && (
-        <div
-          style={{
-            position: 'fixed',
-            left: isSidebarOpen ? '21rem' : '1rem',
-            top: '24rem',
-            zIndex: 1000
-          }}
-          className="bg-zinc-900 bg-opacity-90 text-white rounded-2xl shadow-xl p-4 min-w-80 max-w-md"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold mb-0">Race Dashboard</h3>
+        <div className="absolute top-20 left-4 z-[1000] bg-zinc-900 bg-opacity-90 text-white rounded-2xl shadow-xl p-4 min-w-80 max-w-md">
+          <h3 className="text-lg font-semibold mb-4">Race Dashboard</h3>
+          
+          {/* Start Time Setup */}
+          <div className="mb-4">
+            <label className="block text-sm mb-2">Start Time (HH:MM):</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={startTime || "13:30"}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="bg-zinc-700 px-3 py-1 rounded text-white w-20 text-center text-sm"
+                placeholder="13:30"
+              />
+              <button
+                onClick={() => setStartTime(startTime || "13:30")}
+                className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
+              >
+                Set
+              </button>
+            </div>
           </div>
+
           {/* Countdown Display */}
           {countdownActive && (
             <div className={clsx(
@@ -959,14 +926,19 @@ export default function Charts({ layline, setLayline }) {
                 </div>
               ) : (
                 <div>
-                  <div className="text-lg font-bold mb-2">⏱ Countdown</div>
-                  <div className="text-6xl font-extrabold leading-none">
-                    {countdownDisplay}
-                  </div>
+                  <div className="text-sm">⏱ Countdown</div>
+                  <div className="text-xl">{countdownDisplay}</div>
                 </div>
               )}
             </div>
           )}
+
+          {/* GPS Time */}
+          <div className="mb-4">
+            <div className="text-xs text-zinc-400">GPS Time</div>
+            <div className="text-lg font-mono">{formatGPSTime(liveData.getGPSTime())}</div>
+          </div>
+
           {/* Start Line Info */}
           {startLine.pin1 && startLine.pin2 && (
             <div className="mb-4 bg-zinc-800 p-3 rounded-lg">
@@ -988,6 +960,7 @@ export default function Charts({ layline, setLayline }) {
               </div>
             </div>
           )}
+
           {/* Course Info */}
           {course.length > 0 && (
             <div className="mb-4 bg-zinc-800 p-3 rounded-lg">
@@ -1017,6 +990,13 @@ export default function Charts({ layline, setLayline }) {
               </div>
             </div>
           )}
+
+          {/* Speed */}
+          <div className="mb-4">
+            <div className="text-xs text-zinc-400">Speed (SOG)</div>
+            <div className="text-2xl font-bold">{liveData.getSpeed() ? `${liveData.getSpeed().toFixed(1)} kt` : "--"}</div>
+          </div>
+
           {/* Race Controls */}
           <div className="grid grid-cols-2 gap-2 mb-4">
             <button
@@ -1032,6 +1012,7 @@ export default function Charts({ layline, setLayline }) {
               Set Course
             </button>
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setShowSaveModal(true)}
@@ -1138,12 +1119,6 @@ const formatTimeTo = (seconds) => {
   }
 };
 
-const handleDeleteRace = (raceId) => {
-  if (confirm('Are you sure you want to delete this race?')) {
-    deleteSavedRace(raceId);
-  }
-};
-
 const handleSaveRace = () => {
   if (raceName.trim()) {
     saveCurrentRace(raceName.trim());
@@ -1152,4 +1127,8 @@ const handleSaveRace = () => {
   }
 };
 
-
+const handleDeleteRace = (raceId) => {
+  if (confirm('Are you sure you want to delete this race?')) {
+    deleteSavedRace(raceId);
+  }
+};

@@ -1,0 +1,25 @@
+[Unit]
+Description=Llama Server for Proteus AI
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=pi5
+WorkingDirectory=/home/pi5/llama.cpp/build/bin
+ExecStart=/home/pi5/llama.cpp/build/bin/llama-server -m /home/pi5/models/llama-3.2-3b-instruct-q4_k_m.gguf -c 512 -t 2 --repeat-penalty 1.1 --port 3002
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=llama-server
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/pi5/models
+
+[Install]
+WantedBy=multi-user.target 

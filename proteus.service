@@ -1,0 +1,33 @@
+[Unit]
+Description=Proteus AI Server for SailDash
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=pi5
+WorkingDirectory=/home/pi5/saildash
+Environment=NODE_ENV=production
+# For online mode, uncomment and set your API key:
+# Environment=PROTEUS_MODE=online
+# Environment=OPENAI_API_KEY=your_api_key_here
+ExecStart=/usr/bin/node proteus_server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=proteus
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+#ProtectHome=true
+ReadWritePaths=/home/pi5/saildash
+
+# Resource limits for Raspberry Pi
+MemoryMax=2G
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target 
