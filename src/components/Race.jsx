@@ -4,7 +4,7 @@ import { useNavpoints } from "../context/NavpointsContext";
 import StartLineSelector from "./StartLineSelector";
 import CourseSelector from "./CourseSelector";
 import RaceMap from "./RaceMap";
-import liveData, { getLocalTimeFromGPS } from "../utils/liveData";
+import liveData, { getLocalTimeFromGPS, getAdjustedUTCTime } from "../utils/liveData";
 import clsx from "clsx";
 
 export default function Race() {
@@ -143,22 +143,9 @@ export default function Race() {
   const lon = data?.lon;
   const localTime = getLocalTimeFromGPS(gpsTime, lat, lon);
 
-  // Format GPS time to show only time (HH:MM:SS)
-  const formatGPSTime = (gpsTimeString) => {
-    if (!gpsTimeString) return "No GPS Time";
-    
-    // If it's in HH:MM format, return as is
-    if (gpsTimeString.includes(':') && gpsTimeString.split(':').length === 2) {
-      return gpsTimeString;
-    }
-    
-    // If it's a full datetime, extract just the time
-    if (gpsTimeString.includes('T') || gpsTimeString.includes(' ')) {
-      const timePart = gpsTimeString.split('T')[1] || gpsTimeString.split(' ')[1];
-      return timePart ? timePart.substring(0, 5) : gpsTimeString;
-    }
-    
-    return gpsTimeString;
+  // Get current adjusted time (GPS time = UTC + 19 seconds with timezone)
+  const getCurrentTime = () => {
+    return getAdjustedUTCTime();
   };
 
   return (
@@ -170,8 +157,8 @@ export default function Race() {
           <h3 className="text-sm font-semibold mb-3">Start Time</h3>
           {/* Current GPS Time */}
           <div className="mb-3 p-3 bg-zinc-700 rounded-lg">
-            <div className="text-xs text-zinc-400">GPS Time</div>
-            <div className="text-lg font-mono text-green-400">{localTime || formatGPSTime(gpsTime)}</div>
+            <div className="text-xs text-zinc-400">Current Time</div>
+            <div className="text-lg font-mono text-green-400">{getCurrentTime()}</div>
           </div>
           {/* Time Picker */}
           <div className="flex items-center justify-center gap-2 mb-3">
@@ -232,7 +219,9 @@ export default function Race() {
             )}>
               {raceStarted ? (
                 <div>
-                  <div className="text-7xl font-extrabold leading-none">{formatElapsedTime(elapsedTime)}</div>
+                  <div className="text-7xl font-extrabold leading-none">
+                    {countdownDisplay === 'START' ? 'START' : formatElapsedTime(elapsedTime)}
+                  </div>
                 </div>
               ) : (
                 <div>

@@ -17,30 +17,30 @@ app.use(express.json());
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// AI Chat API endpoint
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { message, history } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
+// AI Chat API endpoint (disabled for performance)
+// app.post('/api/chat', async (req, res) => {
+//   try {
+//     const { message, history } = req.body;
+//     if (!message) {
+//       return res.status(400).json({ error: 'Message is required' });
+//     }
 
-    // Forward to Python LLM API
-    const llmRes = await fetch('http://localhost:5005/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, history: history || [] }),
-    });
-    if (!llmRes.ok) {
-      throw new Error(`LLM API error: ${llmRes.status}`);
-    }
-    const data = await llmRes.json();
-    res.json(data);
-  } catch (error) {
-    console.error('Error processing chat request:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+//     // Forward to Python LLM API
+//     const llmRes = await fetch('http://localhost:5005/chat', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ message, history: history || [] }),
+//     });
+//     if (!llmRes.ok) {
+//       throw new Error(`LLM API error: ${llmRes.status}`);
+//     }
+//     const data = await llmRes.json();
+//     res.json(data);
+//   } catch (error) {
+//     console.error('Error processing chat request:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

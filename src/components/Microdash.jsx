@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useModal } from "../context/ModalContext";
+import { useWebSocket } from "../context/WebSocketContext";
 import liveData from "../utils/liveData";
 import { listenForValue } from "../utils/syncStorage";
 
@@ -8,33 +9,28 @@ export default function Microdash({ signalkData }) {
   const [data, setData] = useState(liveData.get());
   const [activeInstrument, setActiveInstrument] = useState("bme");
   const CHANNEL_NAME = "saildash-data";
+  const { lastMessage } = useWebSocket(); // Get real-time WebSocket updates
 
   useEffect(() => {
     listenForValue("bearingToDestination");
   }, []);
   
+  // Update data immediately when WebSocket message arrives
+  useEffect(() => {
+    if (lastMessage) {
+      setData(liveData.get());
+    }
+  }, [lastMessage]);
+
+  // Fallback polling for reliability
   useEffect(() => {
     const interval = setInterval(() => {
       setData(liveData.get());
-    }, 200);
+    }, 100); // 10 FPS updates (100ms) for better performance
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:8081`);
-    ws.onmessage = (event) => {
-      try {
-        const incoming = JSON.parse(event.data);
-        liveData.set(incoming);
-      } catch (err) {
-        console.error("WebSocket error:", err);
-      }
-    };
-    ws.onopen = () => console.log("📡 Connected to serial WebSocket");
-    ws.onerror = (err) => console.error("WebSocket error:", err);
-    ws.onclose = () => console.log("WebSocket closed");
-    return () => ws.close();
-  }, []);
+  // Removed duplicate WebSocket connection - using centralized WebSocketContext instead
 
   const renderInstrument = () => {
     switch (activeInstrument) {
@@ -51,7 +47,7 @@ export default function Microdash({ signalkData }) {
         return (
           <div className="flex flex-col items-center justify-center h-full text-white">
             <div className="text-[22rem] font-extrabold text-white leading-none max-w-full overflow-hidden text-center">
-              {liveData.getCompassHeading() != null ? `${Math.round(liveData.getCompassHeading())}°` : "—"}
+              {data?.compass != null ? `${Math.round(data.compass)}°` : "—"}
             </div>
           </div>
         );
@@ -59,9 +55,9 @@ export default function Microdash({ signalkData }) {
       case "sog":
         return (
           <div className="flex flex-col items-center justify-center h-full">
-            {data?.speed != null ? (
+            {data?.speedKnots != null ? (
               <div className="text-[22rem] font-extrabold text-white leading-none">
-                {data.speed.toFixed(1)}
+                {data.speedKnots.toFixed(1)}
               </div>
             ) : (
               <div className="text-[10rem] text-white">—</div>
@@ -121,15 +117,15 @@ export default function Microdash({ signalkData }) {
       case "trip":
         return (
           <div className="flex flex-col items-center justify-center h-full text-white">
-            <div className="text-[22rem] font-extrabold text-white leading-none">
-              {liveData.getCompassHeading() != null ? `${Math.round(liveData.getCompassHeading())}°` : "—"}
+            <div className="text-[8rem] font-extrabold text-white leading-none">
+              {data?.compass != null ? `${Math.round(data.compass)}°` : "—"}
             </div>
-            <div className="text-[14rem] font-extrabold leading-none">
+            <div className="text-[8rem] font-extrabold leading-none">
               {data?.bearingToDestination != null
                 ? `${Math.round(data.bearingToDestination)}°`
                 : "—"}
             </div>
-            <div className="text-3xl mt-4 text-zinc-400">Bearing</div>
+            <div className="text-2xl mt-4 text-zinc-400">Heading / Bearing</div>
           </div>
         );
 
@@ -150,7 +146,7 @@ export default function Microdash({ signalkData }) {
         {renderInstrument()}
       </div>
 
-      <div className="grid grid-cols-4 gap-2 mt-4">
+      <div className="grid grid-cols-5 gap-2 mt-4">
         <button
           onClick={() => setActiveInstrument("bme")}
           className={`${buttonClass} ${activeInstrument === "bme" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
@@ -185,11 +181,23 @@ export default function Microdash({ signalkData }) {
         </button>
 
         <button
+          onClick={() => setActiveInstrument("trip")}
+          className={`${buttonClass} ${activeInstrument === "trip" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
+        >
+          <div className="text-3xl font-extrabold">
+            {liveData.getCompassHeading() != null && data?.bearingToDestination != null
+              ? `${Math.round(liveData.getCompassHeading())}° ${Math.round(data.bearingToDestination)}°`
+              : "—"}
+          </div>
+          <div className="text-sm">Trip</div>
+        </button>
+
+        <button
           onClick={() => setActiveInstrument("sog")}
           className={`${buttonClass} ${activeInstrument === "sog" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
         >
           <div className="text-3xl font-extrabold">
-            {data?.speed != null ? `${data.speed.toFixed(1)}` : "—"}
+            {liveData.getSpeed() != null ? `${liveData.getSpeed().toFixed(1)}` : "—"}
           </div>
           <div className="text-sm">SOG</div>
         </button>

@@ -61,7 +61,7 @@ const [headingFocusKey, setHeadingFocusKey] = useState("heading");
 const [isWindPanelExpanded, setIsWindPanelExpanded] = useState(false);
 const [windFocusKey, setWindFocusKey] = useState("true");
 const windRef = useRef();
-const compass = liveData.getCompassHeading();
+const compass = liveData.get().compass;
 
 
   const {
@@ -162,18 +162,7 @@ const compass = liveData.getCompassHeading();
       .then(data => setGeoData(data));
   }, []);
 
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:8081`);
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        liveData.set(data);
-      } catch (err) {
-        console.error("WebSocket parse error:", err);
-      }
-    };
-    return () => ws.close();
-  }, []);
+  // Removed duplicate WebSocket connection - using centralized WebSocketContext instead
 
   const hasAdvancedRef = useRef(false);
 

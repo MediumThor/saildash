@@ -9,39 +9,39 @@ let spoofedDataEnabled = false; // Toggle for spoofed data
 const spoofedCoordinates = [
   // Start at Port Washington marina
   { lat: 43.3875, lon: -87.8750, speed: 4.5, heading: 90 },   // Start - heading east
-  
+
   // Straight line east for about 300 feet (0.05 nautical miles)
   { lat: 43.3875, lon: -87.8740, speed: 4.8, heading: 90 },   // 300ft east
   { lat: 43.3875, lon: -87.8730, speed: 5.1, heading: 90 },   // 600ft east
   { lat: 43.3875, lon: -87.8720, speed: 5.3, heading: 90 },   // 900ft east
   { lat: 43.3875, lon: -87.8710, speed: 5.0, heading: 90 },   // 1200ft east
   { lat: 43.3875, lon: -87.8700, speed: 4.7, heading: 90 },   // 1500ft east
-  
+
   // First turn - tack to port (northeast)
   { lat: 43.3880, lon: -87.8695, speed: 4.9, heading: 45 },   // Turn NE
   { lat: 43.3885, lon: -87.8690, speed: 5.2, heading: 45 },   // Continue NE
   { lat: 43.3890, lon: -87.8685, speed: 5.4, heading: 45 },   // Continue NE
-  
+
   // Second turn - tack to starboard (southeast)
   { lat: 43.3895, lon: -87.8680, speed: 5.1, heading: 135 },  // Turn SE
   { lat: 43.3890, lon: -87.8675, speed: 4.8, heading: 135 },  // Continue SE
   { lat: 43.3885, lon: -87.8670, speed: 4.6, heading: 135 },  // Continue SE
-  
+
   // Third turn - tack back to port (northeast)
   { lat: 43.3880, lon: -87.8665, speed: 4.9, heading: 45 },   // Turn NE
   { lat: 43.3885, lon: -87.8660, speed: 5.3, heading: 45 },   // Continue NE
   { lat: 43.3890, lon: -87.8655, speed: 5.5, heading: 45 },   // Continue NE
-  
+
   // Fourth turn - broad reach (southeast)
   { lat: 43.3895, lon: -87.8650, speed: 5.8, heading: 120 },  // Broad reach SE
   { lat: 43.3900, lon: -87.8645, speed: 6.1, heading: 120 },  // Continue SE
   { lat: 43.3905, lon: -87.8640, speed: 6.3, heading: 120 },  // Continue SE
-  
+
   // Fifth turn - run downwind (south)
   { lat: 43.3910, lon: -87.8635, speed: 5.9, heading: 180 },  // Run downwind S
   { lat: 43.3915, lon: -87.8630, speed: 5.6, heading: 180 },  // Continue S
   { lat: 43.3920, lon: -87.8625, speed: 5.4, heading: 180 },  // Continue S
-  
+
   // Final turn - beat back upwind (northwest)
   { lat: 43.3925, lon: -87.8620, speed: 4.8, heading: 315 },  // Beat upwind NW
   { lat: 43.3930, lon: -87.8615, speed: 4.5, heading: 315 },  // Continue NW
@@ -76,11 +76,11 @@ function getSpoofedGPSData() {
   if (spoofedIndex >= spoofedCoordinates.length) {
     spoofedIndex = 0; // Loop back to start
   }
-  
+
   const coord = spoofedCoordinates[spoofedIndex];
   console.log(`Spoofed GPS: Index ${spoofedIndex}, Lat: ${coord.lat}, Lon: ${coord.lon}, Speed: ${coord.speed}, Heading: ${coord.heading}`);
   spoofedIndex++;
-  
+
   return {
     lat: coord.lat,
     lon: coord.lon,
@@ -145,6 +145,25 @@ const liveData = {
   set(data) {
     const swapped = { ...data };
 
+    // Map abbreviated field names to full names for backward compatibility
+    if (swapped.t !== undefined) swapped.temperature = swapped.t;
+    if (swapped.h !== undefined) swapped.humidity = swapped.h;
+    if (swapped.p !== undefined) swapped.pressure = swapped.p;
+    if (swapped.w1 !== undefined) swapped.waterTemp1 = swapped.w1;
+    if (swapped.w2 !== undefined) swapped.waterTemp2 = swapped.w2;
+    if (swapped.sk !== undefined) swapped.speedKnots = swapped.sk;
+    if (swapped.hd !== undefined) swapped.heading = swapped.hd;
+    if (swapped.hl !== undefined) swapped.heel = swapped.hl;
+    if (swapped.pt !== undefined) swapped.pitch = swapped.pt;
+    if (swapped.c !== undefined) swapped.compass = swapped.c;
+
+    // Map wave height data
+    if (swapped.wh !== undefined) swapped.waveHeight = swapped.wh;
+    if (swapped.wah !== undefined) swapped.avgWaveHeight = swapped.wah;
+    if (swapped.wmh !== undefined) swapped.maxWaveHeight = swapped.wmh;
+    if (swapped.wp !== undefined) swapped.wavePeriod = swapped.wp;
+    if (swapped.wc !== undefined) swapped.waveCount = swapped.wc;
+
     // Flip reversed compass (if needed)
     // if (swapped.compass != null) {
     //   swapped.compass = (360 - swapped.compass) % 360;
@@ -204,46 +223,60 @@ const liveData = {
     return (latest.compass + getCompassOffset() + 360) % 360;
   },
 
-  getCOG() {
-    return latest.cog != null ? Math.round(latest.cog) : null;
-  },
+
 
   getGPSTime() {
     return latest.gpsTime ?? null;
   },
 
+  // Wave height getters
+  getWaveHeight() {
+    return latest.waveHeight ?? null;
+  },
+
+  getAvgWaveHeight() {
+    return latest.avgWaveHeight ?? null;
+  },
+
+  getMaxWaveHeight() {
+    return latest.maxWaveHeight ?? null;
+  },
+
+  getWavePeriod() {
+    return latest.wavePeriod ?? null;
+  },
+
+  getWaveCount() {
+    return latest.waveCount ?? null;
+  },
+
   getGPSTimeCentral() {
     const utcTime = latest.gpsTime;
     if (!utcTime) return null;
-    
-    // Convert UTC to Central Time (UTC-6 for CST, UTC-5 for CDT)
-    // For simplicity, we'll use UTC-6 (Central Standard Time)
-    // In a production app, you'd want to handle daylight saving time properly
-    
+
+    // Simplified timezone conversion for performance
     try {
       // If it's already in HH:MM format, convert it
       if (utcTime.includes(':') && utcTime.split(':').length === 2) {
         const [hour, minute] = utcTime.split(':').map(Number);
         let centralHour = hour - 6; // UTC-6 for Central Time
-        
+
         // Handle day wrap-around
         if (centralHour < 0) {
           centralHour += 24;
         }
-        
+
         return `${centralHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       }
-      
-      // If it's a full datetime string, parse it
+
+      // For full datetime strings, just return the time part
       if (utcTime.includes('T') || utcTime.includes(' ')) {
         const date = new Date(utcTime);
-        const centralDate = new Date(date.getTime() - (6 * 60 * 60 * 1000)); // Subtract 6 hours
-        return centralDate.toTimeString().substring(0, 5); // Return HH:MM
+        return date.toTimeString().substring(0, 5); // Return HH:MM in UTC for now
       }
-      
+
       return utcTime; // Return as-is if we can't parse it
     } catch (error) {
-      console.error('Error converting GPS time to Central:', error);
       return utcTime; // Return original if conversion fails
     }
   },
@@ -280,6 +313,30 @@ export function getLocalTimeFromGPS(gpsUtcTime, lat, lon) {
     dt = today;
   }
   return dt.setZone(tz).toFormat("HH:mm");
+}
+
+// Get adjusted UTC time (GPS time = UTC + 19 seconds) with timezone conversion
+export function getAdjustedUTCTime() {
+  const utcTime = new Date();
+  const gpsTime = new Date(utcTime.getTime() + 19000); // Add 19 seconds
+
+  // Get selected timezone from localStorage
+  const timezone = localStorage.getItem("timezone") || "UTC";
+
+  try {
+    // Convert to selected timezone
+    const timeInTimezone = gpsTime.toLocaleTimeString("en-US", {
+      timeZone: timezone,
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+    return timeInTimezone;
+  } catch (error) {
+    // Fallback to UTC if timezone conversion fails
+    return gpsTime.toTimeString().substring(0, 8);
+  }
 }
 
 export default liveData;

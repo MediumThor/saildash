@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { saveRace, loadRaces, deleteRace } from '../utils/raceStorage';
 import { calculateBearing } from '../utils/calculateBearing';
 import { calculateDistance } from '../utils/calculateDistance';
-import liveData from '../utils/liveData';
+import liveData, { getAdjustedUTCTime } from '../utils/liveData';
 
 const RaceContext = createContext();
 
@@ -14,30 +14,30 @@ const initialState = {
   raceStartTimestamp: null,
   elapsedTime: 0,
   countdownDisplay: '--', // Add countdown display
-  
+
   // Course management
   course: [], // Array of navpoints
   currentMarkIndex: 0,
-  
+
   // Start line
   startLine: {
     pin1: null, // { lat, lon, name }
     pin2: null, // { lat, lon, name }
   },
-  
+
   // Race progress
   distanceToStart: null,
   timeToStart: null,
   distanceToMark: null,
   timeToMark: null,
   bearingToMark: null,
-  
+
   // Saved races
   savedRaces: [],
-  
+
   // Race status
   isRacing: false,
-  
+
   // Race mode display
   showRaceMode: false,
 };
@@ -53,11 +53,13 @@ const raceReducer = (state, action) => {
       };
 
     case 'START_RACE':
+      console.log('START_RACE action dispatched');
       return {
         ...state,
         raceStarted: true,
         raceStartTimestamp: Date.now(),
         isRacing: true,
+        countdownActive: false, // Stop the countdown
       };
 
     case 'UPDATE_ELAPSED_TIME':
@@ -160,73 +162,84 @@ export const RaceProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [state.raceStarted, state.raceStartTimestamp]);
 
-  // Check if race should start based on GPS time
+  // Simple countdown timer
   useEffect(() => {
-    if (!state.countdownActive || state.raceStarted || !state.startTime) return;
+    if (!state.countdownActive || !state.startTime || state.raceStarted) {
+      return;
+    }
 
-    const checkStartTime = () => {
-      const gpsTime = liveData.getGPSTimeCentral();
-      if (!gpsTime) return;
+    let interval;
 
-      const timeParts = state.startTime.split(':');
-      if (timeParts.length < 2) return;
-      
-      const startHour = parseInt(timeParts[0]);
-      const startMinute = parseInt(timeParts[1]);
-      const startSecond = timeParts.length >= 3 ? parseInt(timeParts[2]) : 0;
-      
-      // Use system time for accurate countdown
-      const now = new Date();
-      const gpsHour = now.getHours();
-      const gpsMinute = now.getMinutes();
-      const gpsSecond = now.getSeconds();
-      
-      const startTotalSeconds = (startHour * 60 + startMinute) * 60 + startSecond;
-      const gpsTotalSeconds = (gpsHour * 60 + gpsMinute) * 60 + gpsSecond;
-      
-      let countdownTotalSeconds = startTotalSeconds - gpsTotalSeconds;
-      
-      // Handle case where start time is on the next day
-      if (countdownTotalSeconds <= 0) {
-        countdownTotalSeconds += 24 * 60 * 60; // Add 24 hours in seconds
+    const countdown = () => {
+      // Get adjusted UTC time (GPS time = UTC + 19 seconds with timezone)
+      const currentTimeString = getAdjustedUTCTime();
+
+      // Parse start time
+      const [startHour, startMinute, startSecond] = state.startTime.split(':').map(Number);
+      const [currentHour, currentMinute, currentSecond] = currentTimeString.split(':').map(Number);
+
+      // Calculate seconds until start
+      let startSeconds = startHour * 3600 + startMinute * 60 + startSecond;
+      let currentSeconds = currentHour * 3600 + currentMinute * 60 + currentSecond;
+      let diff = startSeconds - currentSeconds;
+
+      // If negative, add 24 hours (next day)
+      if (diff <= 0) {
+        diff += 24 * 3600;
       }
-      
-      if (countdownTotalSeconds <= 0) {
+
+      // If 1 second or less, show START and start race
+      if (diff <= 1) {
+        console.log('Countdown finished - starting race!');
         dispatch({ type: 'START_RACE' });
-        dispatch({ type: 'UPDATE_COUNTDOWN', payload: 'RACE STARTED!' });
-      } else {
-        const hours = Math.floor(countdownTotalSeconds / 3600);
-        const minutes = Math.floor((countdownTotalSeconds % 3600) / 60);
-        const seconds = countdownTotalSeconds % 60;
-        
-        let countdownString;
-        if (hours > 0) {
-          countdownString = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        } else {
-          countdownString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        dispatch({ type: 'UPDATE_COUNTDOWN', payload: 'START' });
+        if (interval) {
+          clearInterval(interval);
         }
-        
-        dispatch({ type: 'UPDATE_COUNTDOWN', payload: countdownString });
+        return;
       }
+
+      // Format countdown
+      const hours = Math.floor(diff / 3600);
+      const minutes = Math.floor((diff % 3600) / 60);
+      const seconds = diff % 60;
+
+      let display;
+      if (hours > 0) {
+        display = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      } else {
+        display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+
+      dispatch({ type: 'UPDATE_COUNTDOWN', payload: display });
     };
 
-    const interval = setInterval(checkStartTime, 1000);
-    return () => clearInterval(interval);
-  }, [state.countdownActive, state.raceStarted, state.startTime]);
+    // Run immediately
+    countdown();
+
+    // Then every second
+    interval = setInterval(countdown, 1000);
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [state.countdownActive, state.startTime]);
 
   // Update race progress
   useEffect(() => {
     // Calculate progress whenever we have start line or course data, not just when racing
     const hasStartLine = state.startLine.pin1 && state.startLine.pin2;
     const hasCourse = state.course.length > 0;
-    
+
     console.log('Race Progress useEffect triggered:', {
       hasStartLine,
       hasCourse,
       startLine: state.startLine,
       courseLength: state.course.length
     });
-    
+
     if (!hasStartLine && !hasCourse) {
       console.log('No start line or course, returning early');
       return;
@@ -237,7 +250,7 @@ export const RaceProvider = ({ children }) => {
     const updateProgress = () => {
       const data = liveData.get();
       console.log('updateProgress called, data:', data);
-      
+
       if (!data.lat || !data.lon) {
         console.log('No lat/lon data, returning');
         return;
@@ -254,13 +267,13 @@ export const RaceProvider = ({ children }) => {
 
       const progress = calculateRaceProgress(data, state);
       console.log('Calculated Progress:', progress);
-      
+
       dispatch({ type: 'UPDATE_RACE_PROGRESS', payload: progress });
     };
 
     // Run immediately
     updateProgress();
-    
+
     const interval = setInterval(updateProgress, 1000);
     return () => clearInterval(interval);
   }, [state.startLine, state.course, state.currentMarkIndex]);
@@ -290,7 +303,7 @@ export const RaceProvider = ({ children }) => {
       startLine: state.startLine,
       createdAt: new Date().toISOString(),
     };
-    
+
     try {
       await saveRace(raceToSave);
       dispatch({ type: 'SAVE_RACE', payload: raceToSave });
@@ -354,18 +367,18 @@ const calculateRaceProgress = (data, state) => {
   // Calculate distance and time to start line
   if (state.startLine.pin1 && state.startLine.pin2) {
     const distanceToStart = calculateDistanceToStartLine(
-      lat, lon, 
-      state.startLine.pin1, 
+      lat, lon,
+      state.startLine.pin1,
       state.startLine.pin2
     );
     progress.distanceToStart = distanceToStart;
-    
+
     console.log('Start line calculation:', {
       distanceToStart,
       speedKnots,
       hasSpeed: !!(speedKnots && speedKnots > 0)
     });
-    
+
     if (speedKnots && speedKnots > 0) {
       progress.timeToStart = (distanceToStart / speedKnots) * 3600; // seconds
       console.log('Time to start calculated:', progress.timeToStart);
@@ -380,7 +393,7 @@ const calculateRaceProgress = (data, state) => {
     const distanceToMark = calculateDistance(lat, lon, nextMark.lat, nextMark.lon);
     progress.distanceToMark = distanceToMark;
     progress.bearingToMark = calculateBearing(lat, lon, nextMark.lat, nextMark.lon);
-    
+
     if (speedKnots && speedKnots > 0) {
       progress.timeToMark = (distanceToMark / speedKnots) * 3600; // seconds
     }
@@ -393,15 +406,15 @@ const calculateRaceProgress = (data, state) => {
 // Helper function to calculate distance to start line (perpendicular distance to line segment)
 const calculateDistanceToStartLine = (lat, lon, pin1, pin2) => {
   console.log('calculateDistanceToStartLine called with:', { lat, lon, pin1, pin2 });
-  
+
   // First, find the closest point on the line segment
   const closestPoint = findClosestPointOnLine(lat, lon, pin1, pin2);
   console.log('Closest point found:', closestPoint);
-  
+
   // Then calculate the distance to that closest point using proper nautical mile calculation
   const distance = calculateDistance(lat, lon, closestPoint.lat, closestPoint.lon);
   console.log('Distance calculated:', distance);
-  
+
   return distance;
 };
 
@@ -459,4 +472,4 @@ const findClosestPointOnLine = (lat, lon, pin1, pin2) => {
     const closestLon = pin1.lon + ratio * (pin2.lon - pin1.lon);
     return { lat: closestLat, lon: closestLon };
   }
-}; 
+};

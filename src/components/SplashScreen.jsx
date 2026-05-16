@@ -5,7 +5,7 @@ export default function SplashScreen({ onDone }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onDone();
-    }, 6000); // Show splash for 3 seconds
+    }, 2200); // Show splash for 3 seconds
     return () => clearTimeout(timer);
   }, [onDone]);
 
@@ -14,7 +14,7 @@ export default function SplashScreen({ onDone }) {
       <img
         src="/splash.png"
         alt="SailDash Logo"
-        className="w-[80%] max-w-[1000px] object-contain"
+        className="w-[60%] max-w-[1000px] object-contain"
       />
     </div>
   );

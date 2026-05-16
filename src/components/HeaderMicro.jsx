@@ -1,48 +1,46 @@
 import React, { useEffect, useState } from "react";
 import { useSidebar } from "../context/SidebarContext";
-import liveData from "../utils/liveData";
+import liveData, { getAdjustedUTCTime } from "../utils/liveData";
 
 
 export default function HeaderMicro({ nightMode }) {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const [isWifiConnected, setIsWifiConnected] = useState(false);
-  const [boatName, setBoatName] = useState(() => localStorage.getItem("boatName") || "Saildash");
-  const [gpsTime, setGpsTime] = useState(null);
+  const [boatName, setBoatName] = useState(() => localStorage.getItem("boatName") || "");
+  const [currentTime, setCurrentTime] = useState(getAdjustedUTCTime());
 
 
-useEffect(() => {
-  let lastDate = null;
+  // Update current time every second (GPS time = UTC + 19 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(getAdjustedUTCTime());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const interval = setInterval(() => {
-    const raw = liveData.getGPSTime();
-    let date = null;
 
-    if (raw) {
-      const parsed = new Date(raw);
-      if (!isNaN(parsed)) {
-        lastDate = parsed;
-      }
-    }
-
-    if (lastDate) {
-      // Tick forward one second if no update this cycle
-      lastDate = new Date(lastDate.getTime() + 1000);
-      setGpsTime(lastDate.toLocaleTimeString());
-    }
-  }, 1000);
-
-  return () => clearInterval(interval);
-}, []);
-
-  
 
   useEffect(() => {
     const updateFromStorage = () => {
-      setBoatName(localStorage.getItem("boatName") || "Saildash");
+      setBoatName(localStorage.getItem("boatName") || "");
     };
+
+    // Listen for storage events (from other windows/tabs)
     window.addEventListener("storage", updateFromStorage);
-    return () => window.removeEventListener("storage", updateFromStorage);
-  }, []);
+
+    // Also check localStorage periodically for changes within the same window
+    const interval = setInterval(() => {
+      const currentBoatName = localStorage.getItem("boatName") || "";
+      if (currentBoatName !== boatName) {
+        setBoatName(currentBoatName);
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener("storage", updateFromStorage);
+      clearInterval(interval);
+    };
+  }, [boatName]);
 
   useEffect(() => {
     const checkWifi = async () => {
@@ -54,13 +52,13 @@ useEffect(() => {
         setIsWifiConnected(false);
       }
     };
-  
+
     checkWifi();                      // run once
     const interval = setInterval(checkWifi, 5000);  // poll every 5 seconds
-  
+
     return () => clearInterval(interval);
   }, []);
-  
+
 
   return (
     <header className="bg-zinc-800 px-4 py-4 flex items-center justify-between shadow z-50 h-12 relative">
@@ -97,10 +95,8 @@ useEffect(() => {
     className="w-8 h-8"
   />
 )}
-        <div className={`${nightMode ? "text-amber-300" : "text-zinc-300"}`}>
-        {gpsTime || <span className="text-zinc-400">—:—:—</span>}
-
-
+        <div className={`${nightMode ? "text-amber-300" : "text-zinc-300"} text-lg font-mono`}>
+          {currentTime}
         </div>
       </div>
     </header>

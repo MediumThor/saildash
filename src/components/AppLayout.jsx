@@ -13,6 +13,8 @@ import Music from "./Music";
 import Microdisplay from "./Microdash";
 import Race from "./Race"; // ✅ NEW
 import AIChat from "./AIChat"; // ✅ NEW
+import Fleet from "./Fleet"; // ✅ new
+
 
 import { useSidebar } from "../context/SidebarContext";
 import { useModal } from "../context/ModalContext";
@@ -22,7 +24,7 @@ import LaylineModal from "./LaylineModal";
 import WindowModal from "../context/WindowModal";
 import currentLocation from "../utils/currentLocation";
 
-export default function AppLayout({ nightMode, signalkData, setNightMode, brightness, setBrightness }) {
+export default function AppLayout({ nightMode, setNightMode, brightness, setBrightness, signalkData }) {
   const { lat, lon } = currentLocation;
   const [layline, setLayline] = useState({ from: null, to: null });
 
@@ -39,11 +41,11 @@ export default function AppLayout({ nightMode, signalkData, setNightMode, bright
     <div className={`flex h-screen transition-all duration-300 bg-zinc-900 ${nightMode ? "text-amber-500" : "text-white"}`}
       style={{ filter: `brightness(${brightness / 100})` }}>
       <Sidebar nightMode={nightMode} boatName={localStorage.getItem("boatName")} />
-      <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 ${isSidebarOpen ? "ml-80" : "ml-0"}`}>
+      <div className="flex flex-col flex-1 overflow-hidden transition-all duration-300">
         <Header nightMode={nightMode} />
         <main className="flex-1 overflow-hidden h-full">
           <Routes>
-            <Route path="/" element={<Dashboard signalkData={signalkData} />} />
+            <Route path="/" element={<Dashboard />} />
             <Route path="/settings" element={
               <Settings
                 nightMode={nightMode}
@@ -60,6 +62,8 @@ export default function AppLayout({ nightMode, signalkData, setNightMode, bright
             <Route path="/microdisplay" element={<Microdisplay />} />
             <Route path="/race" element={<Race />} /> {/* ✅ NEW ROUTE */}
             <Route path="/ai-chat" element={<AIChat nightMode={nightMode} />} /> {/* ✅ NEW ROUTE */}
+            <Route path="/fleet" element={<Fleet />} />
+
           </Routes>
         </main>
       </div>

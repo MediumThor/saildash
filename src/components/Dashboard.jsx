@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useModal } from "../context/ModalContext";
+import { useWebSocket } from "../context/WebSocketContext";
 import ExpandableWindButton from "../instruments/ExpandableWindButton";
 import liveData from "../utils/liveData";
 import VisualCompass from "../components/VisualCompass";
 import HeelBars from "../components/HeelBars";
 
 
-export default function Dashboard({ signalkData }) {
+export default function Dashboard() {
   const { openModal } = useModal();
+  const { wsStatus, liveData: wsLiveData } = useWebSocket();
   const [data, setData] = useState(liveData.get());
   const [activeInstrument, setActiveInstrument] = useState("bme");
 
@@ -16,22 +18,6 @@ export default function Dashboard({ signalkData }) {
       setData(liveData.get());
     }, 200);
     return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:8081`);
-    ws.onmessage = (event) => {
-      try {
-        const incoming = JSON.parse(event.data);
-        liveData.set(incoming);
-      } catch (err) {
-        console.error("WebSocket error:", err);
-      }
-    };
-    ws.onopen = () => console.log("📡 Connected to serial WebSocket");
-    ws.onerror = (err) => console.error("WebSocket error:", err);
-    ws.onclose = () => console.log("WebSocket closed");
-    return () => ws.close();
   }, []);
 
   const renderInstrument = () => {
@@ -86,10 +72,10 @@ export default function Dashboard({ signalkData }) {
         case "sog":
           return (
             <div className="flex flex-col items-center justify-center h-full">
-              {data?.speed != null ? (
+              {liveData.getSpeed() != null ? (
                 <>
                   <div className="text-[26rem] font-extrabold text-white leading-none">
-                    {data.speed.toFixed(1)}
+                    {liveData.getSpeed().toFixed(1)}
                   </div>
                   <div className="text-6xl text-zinc-400 mt-20">SOG</div>
                 </>
@@ -200,27 +186,14 @@ export default function Dashboard({ signalkData }) {
 </div>
     <div className="text-xlg mt-1">Compass</div>
   </button>
-
-  <button
-  onClick={() => setActiveInstrument("bearing")}
-  className={`${buttonClass} ${activeInstrument === "bearing" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
->
-  <div className="text-7xl font-extrabold leading-tight">
-    {data?.bearingToDestination != null ? data.bearingToDestination.toFixed(0) + "°" : "—"}
-  </div>
-  <div className="text-xlg mt-1">Bearing</div>
-</button>
-
-
   <button
   onClick={() => setActiveInstrument("trip")}
   className={`${buttonClass} ${activeInstrument === "trip" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
 >
   <div className="text-7xl font-extrabold leading-tight">
   {liveData.getCompassHeading() != null && data?.bearingToDestination != null
-  ? `${Math.round(liveData.getCompassHeading())}° → ${Math.round(data.bearingToDestination)}°`
+  ? `${Math.round(liveData.getCompassHeading())}° ${Math.round(data.bearingToDestination)}°`
   : "—"}
-
   </div>
   <div className="text-xlg mt-1">Trip</div>
 </button>
@@ -253,8 +226,7 @@ export default function Dashboard({ signalkData }) {
           className={`${buttonClass} ${activeInstrument === "sog" ? "btn-active" : ""} flex flex-col items-center justify-center text-white`}
         >
           <div className="text-7xl font-extrabold leading-tight">
-                                {data?.speed != null ? data.speed.toFixed(1) : "—"}
-
+            {liveData.getSpeed() != null ? liveData.getSpeed().toFixed(1) : "—"}
           </div>
           <div className="text-xlg mt-1">SOG</div>
         </button>

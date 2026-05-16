@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDisplaySettings } from "../context/DisplaySettingsContext";
 import { useNavpoints } from "../context/NavpointsContext";
+import { useWebSocket } from "../context/WebSocketContext";
 import { useNavigate } from "react-router-dom";
 import TouchKeyboard from "../components/TouchKeyboard";
 
@@ -8,18 +9,17 @@ import TouchKeyboard from "../components/TouchKeyboard";
 
 export default function Settings({ nightMode, setNightMode, brightness, setBrightness}){
   const [soundEffects, setSoundEffects] = useState(() => localStorage.getItem("soundEffects") === "true");
-  const [connectionStatus, setConnectionStatus] = useState("unknown");
-  const [latestMessage, setLatestMessage] = useState(null);
-  const [socket, setSocket] = useState(null);
   const clickSoundRef = useRef(null);
   const navigate = useNavigate();
   const [boatName, setBoatName] = useState(() => localStorage.getItem("boatName") || "");
   const [showBoatNameModal, setShowBoatNameModal] = useState(false);
   const [boatNameInput, setBoatNameInput] = useState(boatName);
   const [keyboardResetSignal, setKeyboardResetSignal] = useState(0);
-  const [rawData, setRawData] = useState(null);
-  const [wsStatus, setWsStatus] = useState("Connecting...");
   const [showDebug, setShowDebug] = useState(false);
+  const [timezone, setTimezone] = useState(() => localStorage.getItem("timezone") || "UTC");
+
+  // Use WebSocket context for data
+  const { wsStatus, lastMessage } = useWebSocket();
 
 
 const {
@@ -47,47 +47,10 @@ const {
   }, [soundEffects]);
 
   useEffect(() => {
-    const ws = new WebSocket("ws://192.168.68.57:3000/signalk/v1/stream");
-    setSocket(ws);
+    localStorage.setItem("timezone", timezone);
+  }, [timezone]);
 
-    ws.onopen = () => setConnectionStatus("connected");
-    ws.onclose = () => setConnectionStatus("disconnected");
-    ws.onerror = () => setConnectionStatus("error");
-    ws.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.updates) setLatestMessage(msg);
-      } catch {}
-    };
 
-    return () => ws.close();
-  }, []);
-
-  // Debug WebSocket connection
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:8081`);
-    ws.onmessage = (event) => {
-      try {
-        const incoming = JSON.parse(event.data);
-        setRawData(incoming);
-      } catch (err) {
-        console.error("WebSocket error:", err);
-      }
-    };
-    ws.onopen = () => {
-      console.log("📡 Connected to serial WebSocket");
-      setWsStatus("Connected");
-    };
-    ws.onerror = (err) => {
-      console.error("WebSocket error:", err);
-      setWsStatus("Error");
-    };
-    ws.onclose = () => {
-      console.log("WebSocket closed");
-      setWsStatus("Disconnected");
-    };
-    return () => ws.close();
-  }, []);
 
   const playClickSound = () => {
     if (soundEffects && clickSoundRef.current) {
@@ -115,6 +78,26 @@ const {
   </button>
 </div>
 
+      {/* Timezone Selection */}
+      <div className="bg-zinc-800 rounded-lg p-4 flex items-center justify-between">
+        <span className="text-2xl">Timezone</span>
+        <select
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          className="bg-zinc-700 text-white px-4 py-2 rounded text-lg"
+        >
+          <option value="UTC">UTC</option>
+          <option value="America/New_York">Eastern Time</option>
+          <option value="America/Chicago">Central Time</option>
+          <option value="America/Denver">Mountain Time</option>
+          <option value="America/Los_Angeles">Pacific Time</option>
+          <option value="Europe/London">London</option>
+          <option value="Europe/Paris">Paris</option>
+          <option value="Asia/Tokyo">Tokyo</option>
+          <option value="Australia/Sydney">Sydney</option>
+        </select>
+      </div>
+
  {/* Night Mode Toggle */}
  <div className="bg-zinc-800 rounded-lg p-4 flex items-center justify-between">
         <span className="text-2xl">Night Mode</span>
@@ -128,14 +111,27 @@ const {
 
 
 
-          {/* Manage Wifi */}
+                {/* Network Settings Section */}
+      <div className="bg-zinc-800 rounded-lg p-4 space-y-4">
+        <h3 className="text-2xl font-semibold">Network Settings</h3>
 
-      <button
-  onClick={() => navigate("/wifi")}
-  className="bg-zinc-700 text-white py-2 px-4 rounded-lg"
->
-  Manage Wi-Fi
-</button>
+        {/* WiFi Management */}
+        <div className="flex items-center justify-between bg-zinc-700 p-4 rounded-lg">
+          <div className="flex-1">
+            <div className="text-xl font-semibold mb-1">Wi-Fi Management</div>
+            <div className="text-sm text-zinc-400">Connect to networks, view connection status, and manage network settings</div>
+          </div>
+          <button
+            onClick={() => navigate("/wifi")}
+            className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+            </svg>
+            Manage
+          </button>
+        </div>
+      </div>
 
 
 
@@ -405,7 +401,7 @@ const {
             {point.lat.toFixed(4)}, {point.lon.toFixed(4)}
           </div>
         </div>
-        
+
         <button
           onClick={() => removeNavpoint(point.__index)}
           className="bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded-lg"
@@ -421,7 +417,7 @@ const {
 {/* Debug Section */}
 <div className="bg-zinc-800 rounded-lg p-4 space-y-4">
   <h3 className="text-2xl font-semibold">Debug</h3>
-  
+
   <button
     onClick={() => setShowDebug(!showDebug)}
     className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg w-full"
@@ -432,15 +428,15 @@ const {
   {showDebug && (
     <div className="space-y-4">
       <div className="text-lg">WebSocket Status: <span className={`font-bold ${wsStatus === "Connected" ? "text-green-400" : wsStatus === "Error" ? "text-red-400" : "text-yellow-400"}`}>{wsStatus}</span></div>
-      <div className="text-lg">Last Update: {rawData ? new Date().toLocaleTimeString() : "No data"}</div>
+      <div className="text-lg">Last Update: {lastMessage ? new Date().toLocaleTimeString() : "No data"}</div>
       <pre className="text-sm bg-zinc-900 p-4 rounded-lg overflow-auto max-h-[400px] text-green-300">
-        {rawData ? JSON.stringify(rawData, null, 2) : "Waiting for data..."}
+        {lastMessage ? JSON.stringify(lastMessage, null, 2) : "Waiting for data..."}
       </pre>
     </div>
   )}
 </div>
 
-  
+
 
     {/* Boat Name */}
 

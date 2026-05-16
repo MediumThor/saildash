@@ -69,22 +69,8 @@ export default function AIChat({ nightMode }) {
     };
   }, []);
 
-  // Add WebSocket logic to keep liveData updated in real time
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:8081`);
-    ws.onmessage = (event) => {
-      try {
-        const incoming = JSON.parse(event.data);
-        liveData.set(incoming);
-      } catch (err) {
-        console.error("WebSocket error:", err);
-      }
-    };
-    ws.onopen = () => console.log("[AIChat] 📡 Connected to serial WebSocket");
-    ws.onerror = (err) => console.error("[AIChat] WebSocket error:", err);
-    ws.onclose = () => console.log("[AIChat] WebSocket closed");
-    return () => ws.close();
-  }, []);
+  // Removed duplicate WebSocket connection - using centralized WebSocketContext instead
+  // Data is now shared via liveData from WebSocketContext
 
   const handleModeSwitch = async () => {
     if (isSwitchingMode) return;
@@ -149,35 +135,12 @@ export default function AIChat({ nightMode }) {
     console.log('[AIChat] Backend URL:', BACKEND_URL);
     console.log('[AIChat] Request body:', JSON.stringify({ message: inputMessage, sensors: liveSensorData }));
 
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: inputMessage, sensors: liveSensorData }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[AIChat] Server error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-      }
-
-      const data = await response.json();
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: data.response
-      }]);
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: "Sorry, I encountered an error connecting to the server. Please make sure the AI server is running."
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
+    // AI Chat is temporarily disabled for performance optimization
+    setMessages(prev => [...prev, {
+      role: "assistant",
+      content: "🤖 AI Chat is currently disabled for performance optimization. The system is focused on providing fast, responsive navigation data. This feature will be re-enabled when performance targets are met."
+    }]);
+    setIsLoading(false);
   };
 
   const handleKeyPress = (e) => {

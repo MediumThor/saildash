@@ -4,25 +4,8 @@ import liveData from "../utils/liveData";
 export default function GPS() {
   const [data, setData] = useState(null);
 
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:8081`);
-
-    ws.onmessage = (event) => {
-      try {
-        const json = JSON.parse(event.data);
-        liveData.set(json);  // update shared data store
-        setData(json);       // local state
-      } catch (err) {
-        console.error("WebSocket error:", err);
-      }
-    };
-
-    ws.onopen = () => console.log("📡 Connected to GPS WebSocket");
-    ws.onerror = (err) => console.error("WebSocket error:", err);
-    ws.onclose = () => console.log("GPS WebSocket closed");
-
-    return () => ws.close();
-  }, []);
+  // Removed duplicate WebSocket connection - using centralized WebSocketContext instead
+  // Data is now shared via liveData from WebSocketContext
 
   return (
     <div className="text-center space-y-4">

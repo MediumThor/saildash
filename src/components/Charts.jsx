@@ -186,24 +186,7 @@ export default function Charts({ layline, setLayline }) {
     popupAnchor: [0, -32],
   });
 
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:8081`);
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        liveData.set(data);
-      } catch (err) {
-        console.error("WebSocket parse error:", err);
-      }
-    };
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-    return () => ws.close();
-  }, []);
+  // Removed duplicate WebSocket connection - using centralized WebSocketContext instead
 
   const hasAdvancedRef = useRef(false);
 
@@ -395,7 +378,7 @@ export default function Charts({ layline, setLayline }) {
   attribution="NOAA ENC styled with QGIS"
   url={`${tileBase}/tiles/{z}/{x}/{y}.png`}
   maxZoom={18}
-  keepBuffer={4}
+  keepBuffer={5}
   updateWhenZooming={false}
   updateWhenIdle={true}
   tileSize={256}
@@ -408,8 +391,8 @@ export default function Charts({ layline, setLayline }) {
     attribution="Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics"
     maxZoom={20}
     zIndex={1000} // draw on top
-    keepBuffer={4}
-    updateWhenZooming={false}
+    keepBuffer={5}
+    updateWhenZooming={true}
     updateWhenIdle={true}
   />
 )}

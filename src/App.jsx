@@ -10,7 +10,7 @@ import { RaceProvider } from "./context/RaceContext";
 import TouchKeyboard from "./components/TouchKeyboard";
 import SplashScreen from "./components/SplashScreen";
 import { FleetProvider } from "./context/FleetContext";
-
+import { WebSocketProvider } from "./context/WebSocketContext";
 
 import AppLayout from "./components/AppLayout";
 import Microdisplay from "./microdisplay";
@@ -20,7 +20,6 @@ function App() {
   const [brightness, setBrightness] = useState(100);
   const [signalkData, setSignalkData] = useState({});
   const [showSplash, setShowSplash] = useState(true);
-
 
   useEffect(() => {
     const socket = new WebSocket("ws://192.168.68.57:3000/signalk/v1/stream");
@@ -54,17 +53,18 @@ function App() {
   return showSplash ? (
     <SplashScreen onDone={() => setShowSplash(false)} />
   ) : (
-    <FleetProvider> 
-    <RaceProvider>
-      <TripProvider>
-        <KeyboardProvider>
-          <DisplaySettingsProvider>
-            <NavpointsProvider>
-              <ModalProvider>
-                <SidebarProvider>
-                  {isMicro ? (
-                    <Router basename="/microdisplay">
-                      <Microdisplay
+    <WebSocketProvider>
+      <FleetProvider>
+      <RaceProvider>
+        <TripProvider>
+          <KeyboardProvider>
+            <DisplaySettingsProvider>
+              <NavpointsProvider>
+                <ModalProvider>
+                  <SidebarProvider>
+                    {isMicro ? (
+                      <Router basename="/microdisplay">
+                                              <Microdisplay
                         nightMode={nightMode}
                         setNightMode={setNightMode}
                         brightness={brightness}
@@ -83,7 +83,7 @@ function App() {
                       />
                     </Router>
                   )}
-  
+
                   {/* Windy widget preloaders */}
                   <div className="fixed top-0 left-0 w-1 h-1 opacity-0 pointer-events-none overflow-hidden z-0">
                     <iframe src={radarUrl} frameBorder="0" title="Radar Preload" />
@@ -99,8 +99,9 @@ function App() {
       </TripProvider>
     </RaceProvider>
     </FleetProvider>
+    </WebSocketProvider>
   );
-  
+
 }
 
 export default App;

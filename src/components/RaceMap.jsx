@@ -5,6 +5,7 @@ import L from "leaflet";
 import liveData from "../utils/liveData";
 import { useNavpoints } from "../context/NavpointsContext";
 import { useRace } from "../context/RaceContext";
+import { useDisplaySettings } from "../context/DisplaySettingsContext";
 
 export default function RaceMap() {
   const { navpoints } = useNavpoints();
@@ -13,6 +14,7 @@ export default function RaceMap() {
     currentMarkIndex, 
     startLine 
   } = useRace();
+  const { mapSource } = useDisplaySettings();
   
   const [data, setData] = useState(liveData.get());
   const fallbackLatLon = [43.3875, -87.8750]; // Port Washington, WI
@@ -57,6 +59,16 @@ export default function RaceMap() {
           url={`${tileBase}/tiles/{z}/{x}/{y}.png`}
           maxZoom={18}
         />
+
+        {/* ESRI Satellite Layer */}
+        {mapSource === "esri" && navigator.onLine && (
+          <TileLayer
+            url="https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution="Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics"
+            maxZoom={20}
+            zIndex={1000} // draw on top
+          />
+        )}
 
         {/* GPS Marker */}
         {isValidCoord(lat) && isValidCoord(lon) && (

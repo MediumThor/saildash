@@ -6,6 +6,7 @@ import Microdash from "./components/Microdash";
 import Charts from "./components/MicroCharts";
 import Settings from "./components/Settings";
 
+
 import { useSidebar } from "./context/SidebarContext";
 import { useModal } from "./context/ModalContext";
 import AddNavpointModal from "./components/AddNavpointModal";
@@ -30,12 +31,13 @@ export default function Microdisplay({ nightMode, signalkData, setNightMode, bri
   return (
     <div className={`flex h-screen transition-all duration-300 bg-zinc-900 ${nightMode ? "text-amber-500" : "text-white"}`} style={{ filter: `brightness(${brightness / 100})` }}>
       <SidebarMicro nightMode={nightMode} boatName={localStorage.getItem("boatName")} />
-      <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 ${isSidebarOpen ? "ml-80" : "ml-0"}`}>
+      <div className="flex flex-col flex-1 overflow-hidden transition-all duration-300">
         <HeaderMicro nightMode={nightMode} />
         <main className="flex-1 overflow-y-auto p-4">
           <Routes>
             <Route path="/" element={<Microdash />} />
             <Route path="charts" element={<Charts layline={layline} setLayline={setLayline} />} />
+
             <Route path="settings" element={<Settings />} />
           </Routes>
         </main>

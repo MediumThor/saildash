@@ -16,18 +16,8 @@ export default function CourseSelector({ onClose }) {
       !isNaN(p.lon)
   );
 
-  const handleMarkToggle = (point) => {
-    const isSelected = selectedMarks.some(mark => 
-      mark.lat === point.lat && mark.lon === point.lon && mark.name === point.name
-    );
-    
-    if (isSelected) {
-      setSelectedMarks(prev => prev.filter(mark => 
-        !(mark.lat === point.lat && mark.lon === point.lon && mark.name === point.name)
-      ));
-    } else {
-      setSelectedMarks(prev => [...prev, point]);
-    }
+  const handleMarkAdd = (point) => {
+    setSelectedMarks(prev => [...prev, point]);
   };
 
   const handleSetCourse = () => {
@@ -76,28 +66,20 @@ export default function CourseSelector({ onClose }) {
             <div className="space-y-3">
               <h3 className="text-xl font-semibold text-white">Available Navpoints</h3>
               <div className="space-y-3 max-h-48 overflow-y-auto">
-                {validNavpoints.map((point, index) => {
-                  const isSelected = selectedMarks.some(mark => 
-                    mark.lat === point.lat && mark.lon === point.lon && mark.name === point.name
-                  );
-
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleMarkToggle(point)}
-                      className={`w-full flex items-center gap-4 ${
-                        isSelected ? "bg-blue-700" : "bg-zinc-700"
-                      } hover:bg-blue-800 text-white font-bold py-4 px-6 rounded-lg text-lg`}
-                    >
-                      <div className="w-10 text-left text-amber-400 text-xl">
-                        {isSelected ? "✓" : ""}
-                      </div>
-                      <div className="flex-1 text-left">
-                        {point.name} ({point.lat.toFixed(2)}, {point.lon.toFixed(2)})
-                      </div>
-                    </button>
-                  );
-                })}
+                {validNavpoints.map((point, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleMarkAdd(point)}
+                    className="w-full flex items-center gap-4 bg-zinc-700 hover:bg-blue-800 text-white font-bold py-4 px-6 rounded-lg text-lg"
+                  >
+                    <div className="w-10 text-left text-amber-400 text-xl">
+                      +
+                    </div>
+                    <div className="flex-1 text-left">
+                      {point.name} ({point.lat.toFixed(2)}, {point.lon.toFixed(2)})
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
 

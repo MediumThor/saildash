@@ -15,5 +15,9 @@ export default defineConfig({
     },
     
   },
-  
+  build: {
+    rollupOptions: {
+      external: ['/charts/**']
+    }
+  }
 });
